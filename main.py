@@ -50,6 +50,8 @@ def get_weather(province, city):
 
 # 获取今天是第几周，返回字符串
 def get_Today_Week():
+    return "0"
+    # 改了53行
     y = config.year
     m = config.month
     d = config.day
@@ -72,6 +74,8 @@ def get_Week_Classes(w):
 
 # 获取今日课程
 def get_Today_Class():
+    # 加了78
+    return "今日无课"
     year = localtime().tm_year
     month = localtime().tm_mon
     day = localtime().tm_mday
@@ -351,32 +355,32 @@ if __name__ == '__main__':
         send_message(user, accessToken, city, weather, max_temperature, min_temperature)
         isPost = True
     # 课程提醒推送
-    todayClasses = get_Today_Class()
-    time_table = config.time_table
-    for i in range(len(time_table)):
-        if isPost:
-            break
-        reminderTime = time_table[i]
-        while True:
-            nowTime = datetime.now().strftime('%H:%M:%S')
-            print("当前时间:", nowTime)
-            if reminderTime == nowTime:
-                if len(todayClasses[i]) != 0:
-                    classInfo = "课程信息: " + todayClasses[i] + "\n" + "上课时间: " + config.course_Time[i] + "\n"
-                    print(classInfo)
-                    send_Class_Message(user, accessToken, classInfo)
-                    print("课程信息推送成功！")
-                isPost = True
-                break
-            elif reminderTime < nowTime:
-                break
-            # 通过睡眠定时
-            defference = calculate_Time_Difference(reminderTime, nowTime) - 3
-            print("课程推送时间差：", defference, "秒")
-            if defference > 0:
-                print("开始睡眠: 等待推送第", i + 1, "讲课")
-                time.sleep(defference)
-                print("结束睡眠")
+    # todayClasses = get_Today_Class()
+    # time_table = config.time_table
+    # for i in range(len(time_table)):
+    #     if isPost:
+    #         break
+    #     reminderTime = time_table[i]
+    #     while True:
+    #         nowTime = datetime.now().strftime('%H:%M:%S')
+    #         print("当前时间:", nowTime)
+    #         if reminderTime == nowTime:
+    #             if len(todayClasses[i]) != 0:
+    #                 classInfo = "课程信息: " + todayClasses[i] + "\n" + "上课时间: " + config.course_Time[i] + "\n"
+    #                 print(classInfo)
+    #                 send_Class_Message(user, accessToken, classInfo)
+    #                 print("课程信息推送成功！")
+    #             isPost = True
+    #             break
+    #         elif reminderTime < nowTime:
+    #             break
+    #         # 通过睡眠定时
+    #         defference = calculate_Time_Difference(reminderTime, nowTime) - 3
+    #         print("课程推送时间差：", defference, "秒")
+    #         if defference > 0:
+    #             print("开始睡眠: 等待推送第", i + 1, "讲课")
+    #             time.sleep(defference)
+    #             print("结束睡眠")
     while True:
         goodNightTime = config.good_Night_Time
         nowTime = datetime.now().strftime('%H:%M:%S')
@@ -397,3 +401,4 @@ if __name__ == '__main__':
             print("开始睡眠:等待推送晚安心语")
             time.sleep(defference)
             print("结束睡眠")
+
