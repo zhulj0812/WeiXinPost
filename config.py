@@ -1,94 +1,92 @@
-# -*- coding: utf-8 -*-
-import json
-import time
-import re
-import cityinfo
-import config
-from requests import get
+# 公众号配置
+# 公众号appId
+app_id = "wxa676fe2c73c1ba4d"
+# 公众号appSecret
+app_secret = "855cfed18c0c33c0478b7243cd3f624a"
+# 模板消息id
+# 每日消息
+template_id1 = "snlQJh2npD5auUcYCsf2CKYRvSDpsbG7BKFEhjg7CkI"
+# 课程消息,上课提醒
+template_id2 = "4iRpfBPxIfccQe0v34RcWRNLwH_Ic0aA0UzPCPwga7w"
+# 晚安心语
+template_id3 = "-fun9-2************************************"
+# 接收公众号消息的微信号
+# 这是openid
+user = ["o3W2R2KeJihAfD1Vxlz7GXg0moFA","o3W2R2KtmIKUP07LV9XsK0qlh8v0"]
+# 和风天气 key（免费）
+qweather_key = "你在和风天气官网申请的key"
 
-
-def _extract_json_object(text: str) -> dict:
-    """
-    从 weather.com.cn 返回内容里尽量提取出 JSON 对象：
-    - 可能是 "var data= {...};"
-    - 可能是 "var dataSK= {...};"
-    - 也可能是直接 "{...}"
-    - 也可能是 HTML/空/反爬内容
-    """
-    if not text:
-        return {}
-
-    # 1) 优先截取第一段（你原来就是这么做的）
-    first = text.split(";", 1)[0].strip()
-
-    # 2) 去掉 "var xxx=" 前缀（如果有）
-    if "=" in first:
-        first = first.split("=", 1)[1].strip()
-
-    # 3) 如果不是以 { 开头，尝试在全文里找第一个 {...}
-    if not first.startswith("{"):
-        m = re.search(r"\{.*\}", text, flags=re.S)
-        if m:
-            first = m.group(0).strip()
-        else:
-            return {}
-
-    # 4) 尝试 json 解析
-    try:
-        return json.loads(first)
-    except Exception:
-        return {}
-
-
-def get_weather(province: str, city: str):
-    """
-    返回：(weather, temp_max, temp_min)
-    """
-    city_id = cityinfo.cityInfo[province][city]["AREAID"]
-    t = int(round(time.time() * 1000))
-
-    headers = {
-        "Referer": f"http://www.weather.com.cn/weather1d/{city_id}.shtml",
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/103.0.0.0 Safari/537.36"
-        )
+# 信息配置
+# 所在省份
+province = "陕西"
+# 所在城市
+city = "西安"
+# 生日，如果月份或者日期小于10，直接用对应的数字即可，例如1997-1-1，---------倒计时
+birthday = "2022-9-9"
+# 在一起的日子，格式同上------------计时器
+love_date = "2001-12-1"
+# 天行数据晚安心语 key
+good_Night_Key = "4082bfd944c******************"
+# -------------------------------------------------------------------------
+# 设置学期第一周开始日期
+year = 2022
+month = 8
+day = 29
+# 每日推送时间
+post_Time = "07:35:00"
+# 每节课提醒时间（有课才会提醒）, 时:分:秒  的形式, 字符串, 根据个人需要设置几次
+time_table = ["07:40:00", "09:40:00", "13:40:00", "15:40:00", "18:40:00"]
+# 课程时间
+course_Time = ["8:00--9:45", "10:00--11:45", "14:00--15:45", "16:00--17:45", "19:00--20:45"]
+# 晚安心语及第二天课程推送时间
+good_Night_Time = "22:55:00"
+# 课程表 "1"代表第一周，依次类推，根据个人实际课表添加，有几周就添加几周,
+# 每一行代表一天, 例如  ['', '编译原理', '', '数据库原理及应用', '数据分析原理', '']  代表周一
+classes = \
+    {
+        "1": [
+            ['', '编译原理', '', '数据库原理及应用', '数据分析原理', ''],
+            ['数据挖掘技术', '', '乒羽俱乐部3', '', '数据可视化', ''],
+            ['计算机网络', '', '编译原理', '数据库原理及应用', '', ''],
+            ['', '', '', '', '', ''],
+            ['', '计算机网络', '', '数据挖掘技术', '', ''],
+            ['', '', '', '', '', ''],
+            ['', '', '', '', '', '']
+        ],
+        "2": [
+            ['', '', '编译原理', '', '数据分析原理', ''],
+            ['数据挖掘技术', '', '乒羽俱乐部3', '', '数据可视化', ''],
+            ['计算机网络', '', '编译原理', '数据库原理及应用', '', ''],
+            ['', '', '', '', '数据挖掘技术', '数据挖掘技术'],
+            ['', '计算机网络', '', '数据挖掘技术6', '', ''],
+            ['', '', '', '', '数据库原理及应用', ''],
+            ['', '', '', '', '', '']
+        ],
+        "3": [
+            ['', '编译原理', '', '数据库原理及应用', '数据分析原理', ''],
+            ['数据挖掘技术', '', '乒羽俱乐部3', '', '数据可视化', ''],
+            ['计算机网络', '', '编译原理', '数据库原理及应用', '', ''],
+            ['', '', '', '', '数据挖掘实验', '数据挖掘实验'],
+            ['', '计算机网络', '', '数据挖掘技术', '', ''],
+            ['', '', '', '', '', ''],
+            ['', '', '', '', '', '']
+        ],
+        "4": [
+            ['', '编译原理', '', '数据库原理及应用', '数据分析原理', ''],
+            ['数据挖掘技术', '', '乒羽俱乐部3', '', '数据可视化', ''],
+            ['计算机网络', '', '编译原理', '数据库原理及应用', '', ''],
+            ['', '', '', '', '数据挖掘实验', '数据挖掘实验'],
+            ['', '计算机网络', '', '数据挖掘技术', '', ''],
+            ['', '', '', '', '', ''],
+            ['', '', '', '', '', '']
+        ],
     }
 
-    url = f"http://d1.weather.com.cn/dingzhi/{city_id}.html?_={t}"
-    resp = get(url, headers=headers, timeout=10)
-    resp.encoding = "utf-8"
-
-    # ✅ 调试：如果你还遇到 KeyError/空数据，就看这里打印的内容
-    print("weather raw resp head:", resp.text[:200])
-
-    data = _extract_json_object(resp.text)
-
-    # ✅ 兼容：有时接口不叫 weatherinfo，或者直接返回空对象
-    weatherinfo = data.get("weatherinfo") or data.get("data") or {}
-
-    # 如果还是拿不到，直接兜底，不让程序炸
-    if not weatherinfo:
-        return "未知", "", ""
-
-    weather = weatherinfo.get("weather", "")
-    temp_max = weatherinfo.get("temp", "")   # 接口字段 temp
-    temp_min = weatherinfo.get("tempn", "")  # 接口字段 tempn
-
-    return weather, temp_max, temp_min
-
-
-if __name__ == "__main__":
-    province, city = config.province, config.city
-    weather, temp_max, temp_min = get_weather(province, city)
-
-    result = {
-        "province": province,
-        "city": city,
-        "weather": weather,
-        "temp_max": temp_max,
-        "temp_min": temp_min
-    }
-
-    print(json.dumps(result, ensure_ascii=False))
+# 模板 1：每日提醒模板
+# 本周是开学的第: {{weeks.DATA}} 周
+# 今天是: {{date.DATA}}
+# 城市： {{city.DATA}}
+# 天气： {{weather.DATA}}
+# 最低气温: {{min_temperature.DATA}}
+# 最高气温: {{max_temperature.DATA}}
+# 今天是破壳日的第: {{love_day.DATA}} 天
