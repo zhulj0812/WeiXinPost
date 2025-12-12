@@ -7,7 +7,7 @@ app_secret = "855cfed18c0c33c0478b7243cd3f624a"
 # 每日消息
 template_id1 = "snlQJh2npD5auUcYCsf2CKYRvSDpsbG7BKFEhjg7CkI"
 # 课程消息,上课提醒
-template_id2 = "H739djLyqXh0-yRDzKY2TKxeewjHbgAr4F9BNJ-BjLk"
+template_id2 = "3fZ9zvxIeY3yNAnOeJ-mbE5wqtE7V75xPVvSE0ELYwk"
 # 晚安心语
 template_id3 = "-fun9-2************************************"
 # 接收公众号消息的微信号
@@ -110,6 +110,7 @@ classes = \
 # 第四讲: {{fourthClass.DATA}}
 # 第五讲: {{fifthClass.DATA}}
 # 第六讲: {{sixthClass.DATA}}
+
 
 
 
