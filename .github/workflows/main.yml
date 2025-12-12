@@ -1,6 +1,10 @@
 name: weixin
+# on:
+#   workflow_dispatch、
 on:
-  workflow_dispatch
+  # 同时支持手动触发和仓库触发（匹配接口调用）
+  workflow_dispatch:
+  repository_dispatch:
 jobs:
 #将工作流程中运行的所有作业组合在一起
   build:
