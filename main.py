@@ -4,28 +4,18 @@ import time
 import re
 import cityinfo
 import config
-from requests import get
+from requests import get, post
 
 
 def _extract_json_object(text: str) -> dict:
-    """
-    从 weather.com.cn 返回内容里尽量提取出 JSON 对象：
-    - 可能是 "var data= {...};"
-    - 可能是 "var dataSK= {...};"
-    - 也可能是直接 "{...}"
-    - 也可能是 HTML/空/反爬内容
-    """
     if not text:
         return {}
 
-    # 1) 优先截取第一段（你原来就是这么做的）
     first = text.split(";", 1)[0].strip()
 
-    # 2) 去掉 "var xxx=" 前缀（如果有）
     if "=" in first:
         first = first.split("=", 1)[1].strip()
 
-    # 3) 如果不是以 { 开头，尝试在全文里找第一个 {...}
     if not first.startswith("{"):
         m = re.search(r"\{.*\}", text, flags=re.S)
         if m:
@@ -33,16 +23,30 @@ def _extract_json_object(text: str) -> dict:
         else:
             return {}
 
-    # 4) 尝试 json 解析
     try:
         return json.loads(first)
     except Exception:
         return {}
 
 
+def get_access_token() -> str:
+    url = (
+        "https://api.weixin.qq.com/cgi-bin/token"
+        "?grant_type=client_credential"
+        f"&appid={config.app_id}"
+        f"&secret={config.app_secret}"
+    )
+    r = get(url, timeout=10)
+    print("token raw resp:", r.text)
+    j = r.json()
+    if "access_token" not in j:
+        raise RuntimeError(f"get_access_token failed: {j}")
+    return j["access_token"]
+
+
 def get_weather(province: str, city: str):
     """
-    返回：(weather, temp_max, temp_min)
+    返回：(weather, temp_min, temp_max)
     """
     city_id = cityinfo.cityInfo[province][city]["AREAID"]
     t = int(round(time.time() * 1000))
@@ -60,35 +64,64 @@ def get_weather(province: str, city: str):
     resp = get(url, headers=headers, timeout=10)
     resp.encoding = "utf-8"
 
-    # ✅ 调试：如果你还遇到 KeyError/空数据，就看这里打印的内容
     print("weather raw resp head:", resp.text[:200])
 
     data = _extract_json_object(resp.text)
-
-    # ✅ 兼容：有时接口不叫 weatherinfo，或者直接返回空对象
     weatherinfo = data.get("weatherinfo") or data.get("data") or {}
 
-    # 如果还是拿不到，直接兜底，不让程序炸
     if not weatherinfo:
+        # 兜底：不让程序炸，也能继续发消息（但内容是未知）
         return "未知", "", ""
 
     weather = weatherinfo.get("weather", "")
-    temp_max = weatherinfo.get("temp", "")   # 接口字段 temp
-    temp_min = weatherinfo.get("tempn", "")  # 接口字段 tempn
+    temp_max = weatherinfo.get("temp", "")   # 最高温
+    temp_min = weatherinfo.get("tempn", "")  # 最低温
+    return weather, temp_min, temp_max
 
-    return weather, temp_max, temp_min
+
+def send_weather_template(openid: str, access_token: str, city: str, weather: str, temp_min: str, temp_max: str):
+    """
+    这里的 key 名必须和你微信模板里的变量名一致：
+    {{city.DATA}} / {{weather.DATA}} / {{min_temperature.DATA}} / {{max_temperature.DATA}}
+    """
+    url = f"https://api.weixin.qq.com/cgi-bin/message/template/send?access_token={access_token}"
+
+    payload = {
+        "touser": openid,
+        "template_id": config.template_id2,  # 你新建“早安/天气”那个模板ID
+        "data": {
+            "city": {"value": city},
+            "weather": {"value": weather},
+            "min_temperature": {"value": temp_min},
+            "max_temperature": {"value": temp_max},
+        }
+    }
+
+    r = post(url, json=payload, timeout=10)
+    print(f"send to {openid} raw resp:", r.text)
+
+    j = r.json()
+    if j.get("errcode", -1) != 0:
+        raise RuntimeError(f"send failed for {openid}: {j}")
+
+    return j
 
 
 if __name__ == "__main__":
     province, city = config.province, config.city
-    weather, temp_max, temp_min = get_weather(province, city)
 
-    result = {
+    access_token = get_access_token()
+    weather, temp_min, temp_max = get_weather(province, city)
+
+    print("final weather:", {
         "province": province,
         "city": city,
         "weather": weather,
-        "temp_max": temp_max,
-        "temp_min": temp_min
-    }
+        "temp_min": temp_min,
+        "temp_max": temp_max
+    })
 
-    print(json.dumps(result, ensure_ascii=False))
+    for openid in config.user:
+        send_weather_template(openid, access_token, city, weather, temp_min, temp_max)
+
+    print("DONE")
