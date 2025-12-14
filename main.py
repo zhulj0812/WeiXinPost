@@ -2,6 +2,9 @@
 import json
 import time
 import re
+import random
+from datetime import datetime, date
+
 import cityinfo
 import config
 from requests import get, post
@@ -12,7 +15,6 @@ def _extract_json_object(text: str) -> dict:
         return {}
 
     first = text.split(";", 1)[0].strip()
-
     if "=" in first:
         first = first.split("=", 1)[1].strip()
 
@@ -45,9 +47,7 @@ def get_access_token() -> str:
 
 
 def get_weather(province: str, city: str):
-    """
-    返回：(weather, temp_min, temp_max)
-    """
+    """返回：(weather, temp_min, temp_max)"""
     city_id = cityinfo.cityInfo[province][city]["AREAID"]
     t = int(round(time.time() * 1000))
 
@@ -70,30 +70,51 @@ def get_weather(province: str, city: str):
     weatherinfo = data.get("weatherinfo") or data.get("data") or {}
 
     if not weatherinfo:
-        # 兜底：不让程序炸，也能继续发消息（但内容是未知）
         return "未知", "", ""
 
     weather = weatherinfo.get("weather", "")
-    temp_max = weatherinfo.get("temp", "")   # 最高温
-    temp_min = weatherinfo.get("tempn", "")  # 最低温
+    temp_max = weatherinfo.get("temp", "")
+    temp_min = weatherinfo.get("tempn", "")
     return weather, temp_min, temp_max
 
 
-def send_weather_template(openid: str, access_token: str, city: str, weather: str, temp_min: str, temp_max: str):
+def get_love_day(love_date_str: str) -> int:
+    """计算在一起第 N 天（从 love_date 到今天，含当天算第 1 天）"""
+    y, m, d = map(int, love_date_str.split("-"))
+    start = date(y, m, d)
+    today = date.today()
+    delta = (today - start).days
+    # 含当天：同一天返回 1
+    return delta + 1
+
+
+def pick_morning_quote() -> str:
+    quotes = getattr(config, "morning_quotes", [])
+    if not quotes:
+        return "早安！愿你今天一切顺利～"
+    return random.choice(quotes)
+
+
+def send_weather_template(openid: str, access_token: str, city: str,
+                          weather: str, temp_min: str, temp_max: str,
+                          morning: str, love_day: int):
     """
-    这里的 key 名必须和你微信模板里的变量名一致：
+    模板字段必须对应：
     {{city.DATA}} / {{weather.DATA}} / {{min_temperature.DATA}} / {{max_temperature.DATA}}
+    {{morning.DATA}} / {{love_day.DATA}}
     """
     url = f"https://api.weixin.qq.com/cgi-bin/message/template/send?access_token={access_token}"
 
     payload = {
         "touser": openid,
-        "template_id": config.template_id2,  # 你新建“早安/天气”那个模板ID
+        "template_id": config.template_id1,
         "data": {
             "city": {"value": city},
             "weather": {"value": weather},
             "min_temperature": {"value": temp_min},
             "max_temperature": {"value": temp_max},
+            "morning": {"value": morning},
+            "love_day": {"value": str(love_day)},
         }
     }
 
@@ -103,7 +124,6 @@ def send_weather_template(openid: str, access_token: str, city: str, weather: st
     j = r.json()
     if j.get("errcode", -1) != 0:
         raise RuntimeError(f"send failed for {openid}: {j}")
-
     return j
 
 
@@ -113,15 +133,23 @@ if __name__ == "__main__":
     access_token = get_access_token()
     weather, temp_min, temp_max = get_weather(province, city)
 
-    print("final weather:", {
-        "province": province,
+    morning = pick_morning_quote()
+    love_day = get_love_day(config.love_date)
+
+    print("final payload fields:", {
         "city": city,
         "weather": weather,
         "temp_min": temp_min,
-        "temp_max": temp_max
+        "temp_max": temp_max,
+        "morning": morning,
+        "love_day": love_day
     })
 
     for openid in config.user:
-        send_weather_template(openid, access_token, city, weather, temp_min, temp_max)
+        send_weather_template(
+            openid, access_token, city,
+            weather, temp_min, temp_max,
+            morning, love_day
+        )
 
     print("DONE")
